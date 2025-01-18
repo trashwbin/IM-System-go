@@ -53,16 +53,10 @@ func (server *Server) BroadCast(user *User, msg string) {
 func (server *Server) Handler(conn net.Conn) {
 	//...当前链接的业务
 	//fmt.Println("链接建立成功")
-	user := NewUser(conn)
+	user := NewUser(conn, server)
 
-	// 用户上线，将用户加入到onlineMap中
-	server.mapLock.Lock()
-	server.OnlineMap[user.Name] = user
-	server.mapLock.Unlock()
-
-	// 广播当前用户上线消息
-	//server.BroadCast(user, "已上线")
-	server.BroadCast(user, "has online")
+	// 用户上线
+	user.Online()
 
 	// 接收客户端发送的消息
 	go func() {
@@ -70,7 +64,8 @@ func (server *Server) Handler(conn net.Conn) {
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				server.BroadCast(user, "has offline")
+				// 用户下线
+				user.Offline()
 				return
 			}
 			if err != nil && err != io.EOF {
@@ -79,8 +74,9 @@ func (server *Server) Handler(conn net.Conn) {
 			}
 			// 提取用户消息，去除"\n"
 			msg := string(buf[:n-1])
-			// 广播用户消息
-			server.BroadCast(user, msg)
+
+			// 用户发送消息
+			user.DoMessage(msg)
 		}
 	}()
 
@@ -103,6 +99,7 @@ func (server *Server) Start() {
 	go server.ListenMessage()
 	for {
 		// accept
+		// 通过listener接收请求
 		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("listener accept err:", err)
