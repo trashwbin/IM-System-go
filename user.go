@@ -34,8 +34,9 @@ func NewUser(conn net.Conn, server *Server) *User {
 
 // 监听当前User channel的方法，一旦有消息，就直接发送给对端客户端
 func (user *User) ListenMessage() {
-	for {
-		msg := <-user.C
+	// 使用range循环，一旦user.C关闭，即退出
+	for msg := range user.C {
+		//msg := <-user.C
 
 		user.conn.Write([]byte(msg + "\n"))
 	}
