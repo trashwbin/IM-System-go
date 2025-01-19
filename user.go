@@ -93,6 +93,36 @@ func (user *User) DoMessage(msg string) {
 			user.SendMessage("您已经更新用户名：" + user.Name + "\n")
 		}
 
+	} else if len(msg) > 4 && msg[:3] == "to|" {
+		// 消息格式：to|张三|消息内容
+
+		// 1. 获取对方用户名
+		remoteName := strings.Split(msg, "|")[1]
+		if remoteName == "" {
+			user.SendMessage("消息格式不正确，请使用\"to|张三|消息内容\"格式\n")
+			return
+		}
+
+		// 2. 根据用户名获取用户对象
+		remoteUser, ok := user.server.OnlineMap[remoteName]
+		if !ok {
+			user.SendMessage("该用户名不存在\n")
+			return
+		} else if remoteUser.Name == user.Name {
+			user.SendMessage("不能给自己发送消息\n")
+			return
+		}
+
+		// 3. 获取消息内容
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			user.SendMessage("无消息内容，请重发\n")
+			return
+		}
+
+		// 4. 发送消息
+		remoteUser.SendMessage("[" + user.Addr + "]" + user.Name + "对您说：" + content + "\n")
+		user.SendMessage("您对[" + remoteUser.Addr + "]" + remoteUser.Name + "说：" + content + "\n")
 	} else {
 		// 通过广播消息
 		user.server.BroadCast(user, msg)
